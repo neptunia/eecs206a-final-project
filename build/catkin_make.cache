@@ -1,0 +1,2 @@
+ar_track_alvar/ar_track_alvar:ar_track_alvar/ar_track_alvar_msgs:baxter_pykdl:sawyer_full_stack
+-DCATKIN_DEVEL_PREFIX=/home/cc/ee106a/fa24/class/ee106a-ads/eecs206a-final-project/devel -DCMAKE_INSTALL_PREFIX=/home/cc/ee106a/fa24/class/ee106a-ads/eecs206a-final-project/install -G Unix Makefiles
