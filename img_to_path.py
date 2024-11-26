@@ -9,7 +9,7 @@ image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 image = ~image
 
 (thresh, im_bw) = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-
+im_bw = im_bw/255
 # skeletonize
 skeleton = skeletonize(im_bw).astype(np.uint8)
 
