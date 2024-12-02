@@ -1,8 +1,62 @@
 import cv2
 import numpy as np
+import math
+
+
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from matplotlib.cm import get_cmap
+import matplotlib.animation as animation
+from typing import List, Tuple
+
+def animate_paths(paths: List[List[Tuple[int, int]]], save_as: str = None):
+    """
+    Create an animation of paths being drawn.
+    
+    :param paths: List of paths, where each path is a list of points [(x1, y1), (x2, y2), ...].
+    :param save_as: Optional filename to save the animation (e.g., 'animation.mp4').
+    """
+    # Set up the figure and axis
+    fig, ax = plt.subplots(figsize=(10, 10))  # 1000x1000 pixels
+    ax.set_xlim(0, 1000)  # Adjust according to the data range
+    ax.set_ylim(0, 1000)
+    ax.set_aspect('equal')
+    
+    # Lines for each path
+    lines = [ax.plot([], [], lw=2)[0] for _ in paths]
+    
+    # Create a list of cumulative points for each path
+    cumulative_points = [[] for _ in paths]
+
+    def init():
+        """Initialize the animation."""
+        for line in lines:
+            line.set_data([], [])
+        return lines
+
+    def update(frame):
+        """Update the frame of the animation."""
+        for i, path in enumerate(paths):
+            if frame < len(path) - 1:  # Ensure we don't go out of bounds
+                # Append the current segment to the cumulative points for this path
+                cumulative_points[i].append(path[frame + 1])
+                # Update the line with cumulative points
+                x_data, y_data = zip(*cumulative_points[i])
+                lines[i].set_data(x_data, y_data)
+        return lines
+
+    # Total frames = longest path length minus 1 (since we're drawing line segments)
+    max_frames = max(len(path) - 1 for path in paths)
+
+    # Create the animation
+    anim = animation.FuncAnimation(
+        fig, update, frames=max_frames, init_func=init, blit=True, interval=5, repeat=False
+    )
+
+    # Save the animation if a filename is provided
+    if save_as:
+        anim.save(save_as, fps=30, extra_args=['-vcodec', 'libx264'])
+
+    plt.show()
+
 def extract_paths_prioritize_dynamic_endpoints(image):
     """
     Extracts paths from a skeletonized binary image using DFS, dynamically prioritizing endpoint pixels.
@@ -24,7 +78,6 @@ def extract_paths_prioritize_dynamic_endpoints(image):
 
     # List to store all paths
     paths = []
-    animation_steps = []
 
     # Neighbor offsets
     neighbor_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
@@ -54,7 +107,6 @@ def extract_paths_prioritize_dynamic_endpoints(image):
                 continue
             visited.add(current)
             path.append(current)
-            animation_steps.append(list(visited))
             # Choose a single unvisited neighbor to follow
             neighbors = get_neighbors(current)
             if neighbors:
@@ -70,46 +122,69 @@ def extract_paths_prioritize_dynamic_endpoints(image):
         if path:  # Add non-empty paths
             paths.append(path)
     
-    return paths, animation_steps
+    return paths
 
+def calculate_distance(p1, p2) -> float:
+    """Calculate Euclidean distance between two points."""
+    return math.sqrt((p1[0] - p2[0])**2 + (p1[-1] - p2[-1])**2)
 
-# Animation function
-def animate_paths(image, animation_steps):
-    fig, ax = plt.subplots()
-    ax.imshow(image, cmap='gray')
-    ax.set_title("Colored Path Visualization")
+def order_segments(
+    segments: List[Tuple[Tuple[float, float], Tuple[float, float]]]
+) -> List[Tuple[Tuple[float, float], Tuple[float, float]]]:
+    """
+    Order line segments to minimize distance between consecutive segments, allowing reversal of segments.
     
-    # Set up colors
-    cmap = get_cmap("tab10")  # Choose a colormap
-    num_paths = len(paths)
-    colors = [cmap(i / num_paths) for i in range(num_paths)]
+    :param segments: List of line segments as [(start, end), ...].
+    :return: Ordered and possibly reversed list of segments.
+    """
+    if not segments:
+        return []
 
-    # Path data for animation
-    x_data, y_data, color_data = [], [], []
+    # Start with the first segment
+    ordered_segments = [segments.pop(0)]
 
-    for path, color in zip(paths, colors):
-        x, y = zip(*path)
-        x_data.append(x)
-        y_data.append(y)
-        color_data.append(color)
+    while segments:
+        # Get the last segment's endpoint
+        last_end = ordered_segments[-1][-1]
 
-    points = []
+        # Find the closest segment (considering both orientations)
+        best_segment = None
+        best_distance = float('inf')
 
-    def init():
-        for color in color_data:
-            point, = ax.plot([], [], '.', color=color, markersize=2)
-            points.append(point)
-        return points
+        for seg in segments:
+            # Distance without reversal
+            dist_normal = calculate_distance(last_end, seg[0])
+            # Distance with reversal
+            dist_reversed = calculate_distance(last_end, seg[1])
 
-    def update(frame):
-        for i, point in enumerate(points[:frame + 1]):
-            point.set_data(y_data[i], x_data[i])
-        return points
+            if dist_normal < best_distance:
+                best_distance = dist_normal
+                best_segment = (seg, False)  # False means no reversal
 
-    ani = FuncAnimation(
-        fig, update, frames=num_paths, init_func=init, interval=500, repeat=False
-    )
-    plt.show()
+            if dist_reversed < best_distance:
+                best_distance = dist_reversed
+                best_segment = (seg, True)  # True means reversed
+
+        # Add the best segment to the ordered list
+        segment, reversed_flag = best_segment
+        if reversed_flag:
+            ordered_segments.append(segment[::-1])  # Reverse the segment
+        else:
+            ordered_segments.append(segment)
+
+        # Remove the selected segment from the pool
+        segments.remove(segment)
+
+    return ordered_segments
+
+def preprocess_paths(raw_paths: List[np.ndarray]) -> List[List[Tuple[int, int]]]:
+    """
+    Flatten raw paths with extra dimensionality into a simpler form.
+    
+    :param raw_paths: List of np.ndarrays with shape (n, 1, 2).
+    :return: List of paths as [(x1, y1), (x2, y2), ...].
+    """
+    return [[tuple(point[0]) for point in path] for path in raw_paths]
 
 # Main script
 if __name__ == "__main__":
@@ -120,8 +195,45 @@ if __name__ == "__main__":
     _, binary_image = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
 
     # Extract paths and animation steps
-    paths, animation_steps = extract_paths_prioritize_dynamic_endpoints(binary_image)
-    for i in range(len(paths)):
-        print("Path %i: "%i, paths[i])
+    paths = extract_paths_prioritize_dynamic_endpoints(binary_image)
+
+    # drop paths with less than 5 points
+    paths = [i for i in paths if len(i) > 4]
+
+    for i in range(10):
+    
+        paths = order_segments(paths)
+
+        # merge paths if the end points are within 10 pixels of each other
+
+        for i in range(len(paths)-2, 0, -1):
+            if calculate_distance(paths[i][-1], paths[i+1][0]) < 10:
+                paths[i]+=paths[i+1]
+                paths.pop(i+1)
+        #print(paths_reordered)
+        #for i in range(len(paths_reordered)):
+        #    print("Path %i: "%i, paths_reordered[i])
+
+    paths_reordered = order_segments(paths)
+
+    # drop paths with less than 20 points
+    paths_reordered = [i for i in paths_reordered if len(i) > 20]
+
+
+    newpaths = []
+    eps = 0.001
+    for path in paths_reordered:
+        print(path)
+        path = np.array(path)
+        peri = cv2.arcLength(path, True)
+        approx = cv2.approxPolyDP(path, eps*peri, False)
+        #approx = [path[0]] + approx + [path[-1]]
+        #print([i[0] for i in approx])
+        #print(approx)
+        newpaths.append(approx)
+    print(newpaths)
+
+
+    pp = preprocess_paths(newpaths)
     # Visualize the paths being drawn
-    animate_paths(binary_image, animation_steps)
+    animate_paths(paths_reordered)
