@@ -41,7 +41,7 @@ def show_image_callback(img_data, xxx_todo_changeme):
         cv_image = np.hstack([get_edge])
     edge_str = "(Edge Detection)" if edge_detection else ''
     cv_win_name = ' '.join([window_name, edge_str])
-    cv2.imwrite("/home/cc/ee106a/fa24/class/ee106a-ads/test.png",cv_image)
+    cv2.imwrite("./test.png",cv_image)
 
 def main():
     """Camera Display Example

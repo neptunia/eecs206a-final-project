@@ -13,8 +13,8 @@ import tf2_ros
 #pls tell me this is how we get the 
 tfBuffer = tf2_ros.Buffer()
 tfListener = tf2_ros.TransformListener(tfBuffer)
-trans1 = tfBuffer.lookup_transform('ar_tag_01', 'base', rospy.Time())
-trans2 = tfBuffer.lookup_transform('ar_tag_02', 'base', rospy.Time())
+trans1 = tfBuffer.lookup_transform('ar_tag_06', 'base', rospy.Time())
+trans2 = tfBuffer.lookup_transform('ar_tag_00', 'base', rospy.Time())
 #going with tag 01 is top left and tag 02 is bottom right (if my math later isnt bs)
 pox_x1 = trans1.transform.translation.x
 pos_y1 = trans1.transform.translation.y
@@ -142,9 +142,10 @@ def drawcontours(convertedlist):
             #lift pen up at end of contour
             move(compute_ik, contour[-1][0], contour[-1][1], lift_pen, ox, oy, oz, ow)
 
+l = [[(721, 583), (414, 731), (389, 737), (378, 731), (379, 699), (388, 646), (434, 445), (481, 189), (511, 154), (702, 107), (743, 92), (772, 91), (779, 104), (789, 168), (852, 429), (859, 493), (851, 500), (824, 487), (606, 271), (496, 174)], [(852, 501), (852, 514), (850, 516), (850, 518), (849, 519), (848, 522), (844, 527), (844, 528), (838, 534), (837, 534), (835, 536), (833, 536), (832, 537), (829, 537), (828, 538), (827, 538), (824, 540), (822, 540), (821, 541), (820, 541), (817, 543), (815, 543), (814, 544), (812, 544), (811, 545), (809, 545), (808, 546), (806, 546), (804, 548), (803, 548), (802, 549), (801, 549), (800, 550), (799, 550), (798, 551), (797, 551), (796, 552), (795, 552), (792, 554), (790, 554), (787, 556), (785, 556), (784, 557), (783, 557), (782, 558), (780, 558), (777, 560), (775, 560), (774, 561), (772, 561), (771, 562), (770, 562), (767, 564), (765, 564), (762, 566), (760, 566), (759, 567), (757, 567), (754, 569), (752, 569), (750, 571), (748, 571), (747, 572), (746, 572), (745, 573), (744, 573), (743, 574), (742, 574), (739, 576), (737, 576), (736, 577), (734, 577), (733, 578), (731, 578), (729, 580), (728, 580), (727, 581), (726, 581), (725, 582), (722, 583)]]
 
 
 # Python's syntax for a main() method
 if __name__ == '__main__':
-    drawcontours(convertcontours('''put the list of list of points here i guess'''))
+    drawcontours(convertcontours(l))
 

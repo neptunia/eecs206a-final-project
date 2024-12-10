@@ -231,9 +231,10 @@ if __name__ == "__main__":
         #print([i[0] for i in approx])
         #print(approx)
         newpaths.append(approx)
-    print(newpaths)
+    #print(newpaths)
 
 
     pp = preprocess_paths(newpaths)
+    print(pp)
     # Visualize the paths being drawn
-    animate_paths(paths_reordered)
+    animate_paths(pp)
