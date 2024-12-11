@@ -8,6 +8,7 @@ import argparse
 import numpy as np
 import rospkg
 import roslaunch
+import math
 
 from paths.trajectories import LinearTrajectory, CircularTrajectory
 from paths.paths import MotionPath
@@ -16,6 +17,8 @@ from controllers.controllers import (
     PIDJointVelocityController, 
     FeedforwardJointVelocityController
 )
+
+
 from utils.utils import *
 
 from trac_ik_python.trac_ik import IK
@@ -26,6 +29,10 @@ import intera_interface
 from moveit_msgs.msg import DisplayTrajectory, RobotState
 from sawyer_pykdl import sawyer_kinematics
 
+
+from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest, GetPositionIKResponse
+from geometry_msgs.msg import PoseStamped
+from moveit_commander import MoveGroupCommander
 
 def tuck():
     """
@@ -104,7 +111,7 @@ def get_trajectory(limb, kin, ik_solver, tag_pos):
 
     target_pos = np.array(tag_pos)
     print("TARGET POSITION:", target_pos)
-    target_pos[2] += 0.4 #linear path moves to a Z position above AR Tag.
+    target_pos[2] += 0.4 - 13.335/100 #linear path moves to a Z position above AR Tag.
     print(type(target_pos))
     print("TARGET POSITION:", target_pos)
     trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=1)
@@ -112,6 +119,59 @@ def get_trajectory(limb, kin, ik_solver, tag_pos):
     path = MotionPath(limb, kin, ik_solver, trajectory)
     print(path)
     return path.to_robot_trajectory(2, True)
+
+def get_trajectory_slow(limb, kin, ik_solver, tag_pos):
+
+
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
+
+    try:
+        trans = tfBuffer.lookup_transform('base', 'right_hand', rospy.Time(0), rospy.Duration(10.0))
+    except Exception as e:
+        print(e)
+
+    current_position = np.array([getattr(trans.transform.translation, dim) for dim in ('x', 'y', 'z')])
+    print("Current Position:", current_position)
+
+    target_pos = np.array(tag_pos)
+    print("TARGET POSITION:", target_pos)
+    target_pos[2] += 0.4 - 13.335/100 #linear path moves to a Z position above AR Tag.
+    print(type(target_pos))
+    print("TARGET POSITION:", target_pos)
+    trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=5)
+
+    path = MotionPath(limb, kin, ik_solver, trajectory)
+    print(path)
+    return path.to_robot_trajectory(10, True)
+
+def get_trajectory_above(limb, kin, ik_solver, tag_pos):
+
+
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
+
+    try:
+        trans = tfBuffer.lookup_transform('base', 'right_hand', rospy.Time(0), rospy.Duration(10.0))
+    except Exception as e:
+        print(e)
+
+    current_position = np.array([getattr(trans.transform.translation, dim) for dim in ('x', 'y', 'z')])
+    print("Current Position:", current_position)
+
+    target_pos = np.array(tag_pos)
+    print("TARGET POSITION:", target_pos)
+    target_pos[2] += 0.6 #linear path moves to a Z position above AR Tag.
+    print(type(target_pos))
+    print("TARGET POSITION:", target_pos)
+    trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=5)
+
+    path = MotionPath(limb, kin, ik_solver, trajectory)
+    print(path)
+    return path.to_robot_trajectory(10, True)
+
+
+
 
 def get_controller(controller_name, limb, kin):
     """
@@ -137,41 +197,125 @@ def get_controller(controller_name, limb, kin):
         raise ValueError('Controller {} not recognized'.format(controller_name))
     return controller
 
+
+#def convert_to_real_world_coordinates(rel_point, tag_pos):
+
+
+def convert_to_real_world_coordinates(rel_point, tag_pos):
+    # Extract the corners of the paper from tag_pos
+    in2m = 0.0254 #1 inch in meters
+    x1, y1 = tag_pos[0][:2]
+    x2, y2 = tag_pos[1][:2]
+    xCen = (x1 + x2)/2
+    yCen = (y1 + y2)/2
+    
+    # Real-world dimensions of the paper (8.5x11 inches)
+    paper_width = 11.0 * in2m
+    paper_height = 8.5 * in2m
+    ar_half = 0.03
+    
+    # Calculate the diagonal distance between the corners (real-world space)
+    #real_diagonal = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    
+    # Calculate the diagonal length of the paper based on its real dimensions
+    #paper_diagonal = math.sqrt(paper_width ** 2 + paper_height ** 2)
+    
+    # Scale factor to adjust the paper's actual size
+    #scale_factor = real_diagonal / paper_diagonal
+    
+    # Calculate the real width and height of the paper (considering the aspect ratio)
+    #real_width = paper_width * scale_factor
+    #real_height = paper_height * scale_factor* in2m
+    real_width = paper_width
+    real_height = paper_height
+    
+    # Calculate the rotation angle (in radians)
+    theta = math.atan2(y2 - y1, x2 - x1) - math.atan2(0.14+0.03, 0.108+0.03)
+    
+    # Extract the relative point coordinates
+    rel_x, rel_y = rel_point
+    
+    # Calculate the dimensions of the relative coordinate system
+    rel_width = 1100
+    rel_height = 850
+    #13.335
+    # Calculate the scaling factors for x and y
+    scale_x = real_width / rel_width
+    scale_y = real_height / rel_height
+    
+    # Step 1: Translate the relative point to the origin
+    rel_x_centered = rel_x - rel_width / 2
+    rel_y_centered = rel_y - rel_height / 2
+    
+    # Step 2: Rotate the point by -theta to undo the rotation
+    rotated_x = rel_x_centered * math.cos(-theta) - rel_y_centered * math.sin(-theta)
+    rotated_y = rel_x_centered * math.sin(-theta) + rel_y_centered * math.cos(-theta)
+    
+    # Step 3: Scale the rotated coordinates to the real-world size
+    real_x = xCen + rotated_x * scale_x
+    real_y = yCen + rotated_y * scale_y
+    
+    return [real_x, real_y]
+
+
+
 def convertcontours(list, tag_pos):
     '''constants'''
-    #numbers of segments drawing is sliced into
-    num_x = 850
-    num_y = 1100
-    #side length of square in cm
-    scale = 0.0254
-    #I hope math works like this
-    #also i hope the x-y axis are x is parallel to the computer monitor and y is towards the computer
-    #angle of paper from the y axis
-    #needs angle of corner of paper from side of paper to make this easier i think, standard numbers
-    diagonal_angle = np.arctan(8.5/11)
-    #subtract the diagonal angle from the angle of tag1->tag2 vector to get angle of side of paper from y axis
-
-    total_angle = np.arctan((tag_pos[1][0] - tag_pos[0][0])/(tag_pos[1][1] - tag_pos[0][1]))
-    paper_angle = total_angle - diagonal_angle
-    print(paper_angle)
+    
     out = []
-    for contour in list:
-        for point in contour[::5]:
-            #transform i hop this is how math works, no clue tho
-            #i hope the paper coords were in (x,y)
-            #a copy in case i change it in the x before i change the y
-            new = [point[0], point[1],(tag_pos[0][2] + tag_pos[1][2]) / 2]
-            new[0] = tag_pos[0][0] + (point[0] * np.sin(paper_angle) + point[1] * np.cos(paper_angle))/400. * scale
-            new[1] = tag_pos[0][1] + (point[0] * np.cos(paper_angle) + point[1] * np.sin(paper_angle))/400. * scale
-            
-            out.append(new)
+    for point in list:
+        #transform i hop this is how math works, no clue tho
+        #i hope the paper coords were in (x,y)
+        #a copy in case i change it in the x before i change the y
+        new = convert_to_real_world_coordinates(point, tag_pos)
+        new += [tag_pos[0][2]/2 + tag_pos[1][2]/2]
+        out.append(new)
     return out
 
-l = [[(721, 583), (414, 731), (389, 737), (378, 731), (379, 699), (388, 646), (434, 445), (481, 189), (511, 154), (702, 107), (743, 92), (772, 91), (779, 104), (789, 168), (852, 429), (859, 493), (851, 500), (824, 487), (606, 271), (496, 174)], [(852, 501), (852, 514), (850, 516), (850, 518), (849, 519), (848, 522), (844, 527), (844, 528), (838, 534), (837, 534), (835, 536), (833, 536), (832, 537), (829, 537), (828, 538), (827, 538), (824, 540), (822, 540), (821, 541), (820, 541), (817, 543), (815, 543), (814, 544), (812, 544), (811, 545), (809, 545), (808, 546), (806, 546), (804, 548), (803, 548), (802, 549), (801, 549), (800, 550), (799, 550), (798, 551), (797, 551), (796, 552), (795, 552), (792, 554), (790, 554), (787, 556), (785, 556), (784, 557), (783, 557), (782, 558), (780, 558), (777, 560), (775, 560), (774, 561), (772, 561), (771, 562), (770, 562), (767, 564), (765, 564), (762, 566), (760, 566), (759, 567), (757, 567), (754, 569), (752, 569), (750, 571), (748, 571), (747, 572), (746, 572), (745, 573), (744, 573), (743, 574), (742, 574), (739, 576), (737, 576), (736, 577), (734, 577), (733, 578), (731, 578), (729, 580), (728, 580), (727, 581), (726, 581), (725, 582), (722, 583)]]
 
+def do_stuff(pose):
 
+    compute_ik = rospy.ServiceProxy('compute_ik', GetPositionIK)
+
+    request = GetPositionIKRequest()
+    request.ik_request.group_name = "right_arm"
+
+    # If a Sawyer does not have a gripper, replace '_gripper_tip' with '_wrist' instead
+    link = "right_gripper_tip"
+
+    request.ik_request.ik_link_name = link
+    # request.ik_request.attempts = 20
+    request.ik_request.pose_stamped.header.frame_id = "base"
+    
+    # Set the desired orientation for the end effector HERE
+    request.ik_request.pose_stamped.pose.position.x = pose[0]
+    request.ik_request.pose_stamped.pose.position.y = pose[1]
+    request.ik_request.pose_stamped.pose.position.z = pose[2]
+    request.ik_request.pose_stamped.pose.orientation.x = 0.0
+    request.ik_request.pose_stamped.pose.orientation.y = 1.0
+    request.ik_request.pose_stamped.pose.orientation.z = 0.0
+    request.ik_request.pose_stamped.pose.orientation.w = 0.0
+    
+    response = compute_ik(request)
+        
+    group = MoveGroupCommander("right_arm")
+
+    group.set_pose_target(request.ik_request.pose_stamped)
+
+    plan = group.plan()
+    group.execute(plan[1])
+#l = [[(721, 583), (414, 731), (389, 737), (378, 731), (379, 699), (388, 646), (434, 445), (481, 189), (511, 154), (702, 107), (743, 92), (772, 91), (779, 104), (789, 168), (852, 429), (859, 493), (851, 500), (824, 487), (606, 271), (496, 174)], [(852, 501), (852, 514), (850, 516), (850, 518), (849, 519), (848, 522), (844, 527), (844, 528), (838, 534), (837, 534), (835, 536), (833, 536), (832, 537), (829, 537), (828, 538), (827, 538), (824, 540), (822, 540), (821, 541), (820, 541), (817, 543), (815, 543), (814, 544), (812, 544), (811, 545), (809, 545), (808, 546), (806, 546), (804, 548), (803, 548), (802, 549), (801, 549), (800, 550), (799, 550), (798, 551), (797, 551), (796, 552), (795, 552), (792, 554), (790, 554), (787, 556), (785, 556), (784, 557), (783, 557), (782, 558), (780, 558), (777, 560), (775, 560), (774, 561), (772, 561), (771, 562), (770, 562), (767, 564), (765, 564), (762, 566), (760, 566), (759, 567), (757, 567), (754, 569), (752, 569), (750, 571), (748, 571), (747, 572), (746, 572), (745, 573), (744, 573), (743, 574), (742, 574), (739, 576), (737, 576), (736, 577), (734, 577), (733, 578), (731, 578), (729, 580), (728, 580), (727, 581), (726, 581), (725, 582), (722, 583)]]
+
+l = [[(392, 892), (359, 851), (289, 653), (185, 603), (105, 524), (274, 387), (270, 250), (249, 202)], [(271, 252), (299, 263), (417, 401), (439, 415), (456, 409), (598, 289), (635, 276), (652, 253)], [(405, 166), (402, 171), (402, 174), (401, 175), (401, 188), (402, 189), (402, 190), (401, 191), (401, 203), (402, 204), (402, 208)], [(482, 641), (484, 648), (473, 664), (400, 873), (391, 883)], [(484, 649), (607, 683), (647, 685), (635, 650), (530, 535), (536, 502), (630, 318), (636, 276)], [(279, 641), (279, 640), (280, 639), (280, 627), (279, 626), (279, 613)]]
 
 def main():
+
+
+    rospy.wait_for_service('compute_ik')
+    # Create the function used to call the service
+    
+
+
     
     rospy.init_node('moveit_node')
     
@@ -187,6 +331,8 @@ def main():
 
     print(tag_pos)
 
+    # [array([ 0.84005421, -0.03714028, -0.24398073]), array([ 0.5088102 ,  0.30288555, -0.21465782])]
+
     part1, part2 = tag_pos
     pos_x1, pos_y1, pos_z1 = part1
     pos_x2, pos_y2, pos_z2 = part2
@@ -197,19 +343,23 @@ def main():
     # is a jointspace or torque controller, it should return a trajectory where the positions
     # and velocities are the positions and velocities of each joint.
 
-    for arc in l:
-        newarc = convertcontours(l, tag_pos)
-        print(newarc)
-        for point in newarc:
-            robot_trajectory = get_trajectory(limb, kin, ik_solver, point)
-            planner = PathPlanner('right_arm')
-            plan = planner.plan_to_joint_pos(robot_trajectory.joint_trajectory.points[0].positions)
-
-            planner.execute_plan(plan[1])
-
-
-            planner.execute_plan(robot_trajectory)
-
+    for contour in l:
+        newarc = convertcontours(contour, tag_pos)
+        
+        #go above the first -point in the arc
+        np = newarc[0][:]
+        np[2] += 0.2
+        do_stuff(np)
+        np = newarc[0][:]
+        np[2] += 0.11
+        do_stuff(np)
+        for point in newarc[1:]:
+            np = point[:]
+            np[2]  += 0.11
+            do_stuff(np)
+        np = newarc[-1][:]
+        np[2] += 0.2
+        do_stuff(np)
 
 if __name__ == "__main__":
     main()

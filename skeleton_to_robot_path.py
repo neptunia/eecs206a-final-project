@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
 
     newpaths = []
-    eps = 0.001
+    eps = 0.005
     for path in paths_reordered:
         print(path)
         path = np.array(path)

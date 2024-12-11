@@ -58,16 +58,16 @@ ordered_points = order_points(points)
 # Define destination points for the 1000x1000 square
 dst = np.array([
     [0, 0],
-    [850, 0],
-    [850, 1100],
-    [0, 1100]
+    [1100, 0],
+    [1100, 850],
+    [0, 850]
 ], dtype="float32")
 
 # Compute the perspective transformation matrix
 matrix = cv2.getPerspectiveTransform(ordered_points, dst)
 
 # Perform the perspective transformation
-transformed_image = cv2.warpPerspective(masked_image, matrix, (850, 1100), borderValue=(255, 255, 255))
+transformed_image = cv2.warpPerspective(masked_image, matrix, (1100, 850), borderValue=(255, 255, 255))
 
 
 # Save and display the transformed image
