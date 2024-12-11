@@ -230,7 +230,9 @@ def convert_to_real_world_coordinates(rel_point, tag_pos):
     real_height = paper_height
     
     # Calculate the rotation angle (in radians)
-    theta = math.atan2(y2 - y1, x2 - x1) - math.atan2(0.14+0.03, 0.108+0.03)
+    paper_base_angle = math.atan2(0.14+0.03, 0.108+0.03)
+    frame_rotate_offset = math.pi/2
+    theta = math.atan2(y2 - y1, x2 - x1) - paper_base_angle + frame_rotate_offset
     
     # Extract the relative point coordinates
     rel_x, rel_y = rel_point
