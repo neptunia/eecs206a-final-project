@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """
-Starter script for 106a lab7. 
-Author: Chris Correa
+Script for trajectory execution for drawing
 """
 import sys
 import argparse
