@@ -199,7 +199,7 @@ def get_controller(controller_name, limb, kin):
 
 #def convert_to_real_world_coordinates(rel_point, tag_pos):
 
-
+'''
 def convert_to_real_world_coordinates(rel_point, tag_pos):
     # Extract the corners of the paper from tag_pos
     in2m = 0.0254 #1 inch in meters
@@ -257,7 +257,31 @@ def convert_to_real_world_coordinates(rel_point, tag_pos):
     real_y = yCen + rotated_y * scale_y
     
     return [real_x, real_y]
+'''
+def convert_to_real_world_coordinates(rel_point, tag_pos):
+    b = tag_pos[0][:2]
+    a = tag_pos[1][:2]
+    POINT_TO_MAP = rel_point
 
+    vec_ab = np.array([b[0]-a[0], b[1]-a[1]])
+    s = np.linalg.norm(vec_ab)
+    #s_long = s / 13.901 * 11.0
+    #s_short = s / 13.901 * 8.5
+    s_long = s / 17.220214217 * 11.0 #6cm added to account for the AR positionS (2 half distances)
+    s_short = s / 17.220214217 * 8.5 #ditto
+
+    inv_tan = 0.698659825 #inverse tan of 8.5in + 6cm / 11in + 6cm
+    #0.657889 # inverse tan of 8.5/11
+
+    rot_matr = np.array([[np.cos(inv_tan), -np.sin(inv_tan)],[np.sin(inv_tan),np.cos(inv_tan)]])
+    rotated = (rot_matr) @ (vec_ab / s)
+    rotated_2 = np.array([[0, -1],[1,0]]) @ rotated
+
+    # distance along the red line
+    ar_offset = (0.10737290909 * s_long * rotated - 0.13895317647 * s_short * rotated_2)
+    MAPPED_POINT  = a + (POINT_TO_MAP[0]/1100. * s_long) * rotated - (POINT_TO_MAP[1]/850 * s_short) * rotated_2  + ar_offset
+    
+    return MAPPED_POINT
 
 
 def convertcontours(list, tag_pos):
