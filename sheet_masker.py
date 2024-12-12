@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Load the image
-image_path = "test.png"  # Replace with your image file path
+image_path = "../asdf2.jpeg"  # Replace with your image file path
 image = cv2.imread(image_path)
 
 # Convert to HSV color space for better color segmentation

@@ -244,7 +244,7 @@ def convert_to_real_world_coordinates(rel_point, tag_pos):
     scale_x = real_width / rel_width
     scale_y = real_height / rel_height
     
-    # Step 1: Translate the relative point to the origin
+    # Step 1: Translate the relative po.cos(-theta) - rel_y_centered * math.sin(-theta)int to the origin
     rel_x_centered = rel_x - rel_width / 2
     rel_y_centered = rel_y - rel_height / 2
     
@@ -352,11 +352,11 @@ def main():
         np[2] += 0.2
         do_stuff(np)
         np = newarc[0][:]
-        np[2] += 0.11
+        np[2] += 0.13
         do_stuff(np)
         for point in newarc[1:]:
             np = point[:]
-            np[2]  += 0.11
+            np[2]  += 0.13
             do_stuff(np)
         np = newarc[-1][:]
         np[2] += 0.2
