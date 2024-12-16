@@ -64,7 +64,7 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=arg_fmt,
                                      description=main.__doc__)
     parser.add_argument(
-        '-c', '--camera', type=str, default="head_camera",
+        '-c', '--camera', type=str, default="right_hand_camera",
         choices=valid_cameras, help='Setup Camera Name for Camera Display')
     parser.add_argument(
         '-r', '--raw', action='store_true',
@@ -76,7 +76,7 @@ def main():
         '-g', '--gain', type=int,
         help='Set gain for camera (-1 = auto)')
     parser.add_argument(
-        '-x', '--exposure', type=float,
+        '-x', '--exposure', default=12.0, type=float,
         help='Set exposure for camera (-1 = auto)')
     args = parser.parse_args(rospy.myargv()[1:])
 
@@ -248,6 +248,8 @@ matrix = cv2.getPerspectiveTransform(ordered_points, dst)
 
 # Perform the perspective transformation
 transformed_image = cv2.warpPerspective(masked_image, matrix, (1100, 850), borderValue=(255, 255, 255))
+cv2.imwrite("transformed_image.png", transformed_image)
+
 
 from skimage.morphology import skeletonize
 

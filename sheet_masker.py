@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Load the image
-image_path = "../asdf2.jpeg"  # Replace with your image file path
+image_path = "./test.png"  # Replace with your image file path
 image = cv2.imread(image_path)
 
 # Convert to HSV color space for better color segmentation
@@ -10,7 +10,7 @@ hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
 # Define the color range for the paper (adjust based on your image)
 # Replace these values with appropriate HSV ranges for the paper's color
-lower_color = np.array([0, 0, 170])  # Example: white paper
+lower_color = np.array([0, 0, 180])  # Example: white paper
 upper_color = np.array([180, 60, 255])
 
 # Create a mask for the color range
