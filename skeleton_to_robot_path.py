@@ -223,7 +223,7 @@ if __name__ == "__main__":
     newpaths = []
     eps = 0.005
     for path in paths_reordered:
-        print(path)
+        #print(path)
         path = np.array(path)
         peri = cv2.arcLength(path, True)
         approx = cv2.approxPolyDP(path, eps*peri, False)
@@ -235,6 +235,6 @@ if __name__ == "__main__":
 
 
     pp = preprocess_paths(newpaths)
-    print(pp)
+    print(paths_reordered)
     # Visualize the paths being drawn
     animate_paths(pp)
