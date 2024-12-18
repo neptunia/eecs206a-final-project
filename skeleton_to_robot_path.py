@@ -235,6 +235,6 @@ if __name__ == "__main__":
 
 
     pp = preprocess_paths(newpaths)
-    print(paths_reordered)
+    print(pp)
     # Visualize the paths being drawn
     animate_paths(pp)
