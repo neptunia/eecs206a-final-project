@@ -107,6 +107,7 @@ def get_trajectory(limb, kin, ik_solver, tag_pos, args):
     if task == 'line':
         target_pos = tag_pos[0]
         target_pos[2] += 0.4 #linear path moves to a Z position above AR Tag.
+        print(type(target_pos))
         print("TARGET POSITION:", target_pos)
         trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=7)
     elif task == 'circle':

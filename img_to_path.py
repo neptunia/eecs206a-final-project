@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage.morphology import skeletonize
+from skimage.morphology import skeletonize, medial_axis
 
 # Load the image
 image_path = 'transformed_image.png'
@@ -67,33 +67,9 @@ paths = [contour[:, 0, :].tolist() for contour in contours]
 
 # Visualize the edges and contours
 plt.figure(figsize=(10, 5))
-plt.subplot(1, 2, 1)
 plt.title("Edge Detection")
 plt.imshow(binary, cmap='gray')
 
-plt.subplot(1, 2, 2)
-plt.title("Contours")
-contour_image = np.zeros_like(skeleton)
-#print(contours)
-#cv2.drawContours(contour_image, contours, -1, (255), 1)  # Draw contours for visualization
-
-
-
-print("Number of paths:", len(paths))
-print("First path coordinates:", paths[0][:10])  # Display the first 10 points of the first path
-
-eps = 0.01
-newpaths = []
-for path in contours:
-    path = np.array(path)
-    peri = cv2.arcLength(path, True)
-    approx = cv2.approxPolyDP(path, eps*peri, False)
-    #print([i[0] for i in approx])
-    newpaths.append(approx)
-print(newpaths)
-cv2.drawContours(contour_image, newpaths, -1, (255), 1)
-
-plt.imshow(contour_image, cmap='gray')
 plt.show()
 
 # Print example paths

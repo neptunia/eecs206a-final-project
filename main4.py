@@ -257,7 +257,7 @@ def convert_to_real_world_coordinates(rel_point, tag_pos):
     real_y = yCen + rotated_y * scale_y
     
     return [real_x, real_y]
-'''
+
 def convert_to_real_world_coordinates(rel_point, tag_pos):
     b = tag_pos[0][:2]
     a = tag_pos[1][:2]
@@ -282,6 +282,63 @@ def convert_to_real_world_coordinates(rel_point, tag_pos):
     MAPPED_POINT  = a + (POINT_TO_MAP[0]/1100. * s_long) * rotated - (POINT_TO_MAP[1]/850 * s_short) * rotated_2  + ar_offset
     
     return MAPPED_POINT
+    '''
+
+def convert_to_real_world_coordinates(rel_point, tag_pos):
+    # Extract the corners of the paper from tag_pos
+    in2m = 0.0254 #1 inch in meters
+    x1, y1 = tag_pos[0][:2]
+    x2, y2 = tag_pos[1][:2]
+    xCen = (x1 + x2)/2
+    yCen = (y1 + y2)/2
+    
+    # Real-world dimensions of the paper (8.5x11 inches)
+    paper_width = 11.0 * in2m
+    paper_height = 8.5 * in2m
+    ar_half = 0.03
+    
+    # Calculate the diagonal distance between the corners (real-world space)
+    #real_diagonal = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    
+    # Calculate the diagonal length of the paper based on its real dimensions
+    #paper_diagonal = math.sqrt(paper_width ** 2 + paper_height ** 2)
+    
+    # Scale factor to adjust the paper's actual size
+    #scale_factor = real_diagonal / paper_diagonal
+    
+    # Calculate the real width and height of the paper (considering the aspect ratio)
+    #real_width = paper_width * scale_factor
+    #real_height = paper_height * scale_factor* in2m
+    real_width = paper_width
+    real_height = paper_height
+    
+    # Calculate the rotation angle (in radians)
+    theta = math.atan2(y2 - y1, x2 - x1) - math.atan2(0.14+0.03, 0.108+0.03)
+    
+    # Extract the relative point coordinates
+    rel_x, rel_y = rel_point
+    
+    # Calculate the dimensions of the relative coordinate system
+    rel_width = 1100
+    rel_height = 850
+    #13.335
+    # Calculate the scaling factors for x and y
+    scale_x = real_width / rel_width
+    scale_y = real_height / rel_height
+    
+    # Step 1: Translate the relative point to the origin
+    rel_x_centered = rel_x - rel_height / 2
+    rel_y_centered = rel_y - rel_width / 2
+    
+    # Step 2: Rotate the point by -theta to undo the rotation
+    rotated_x = rel_x_centered * math.cos(-theta) - rel_y_centered * math.sin(-theta)
+    rotated_y = rel_x_centered * math.sin(-theta) + rel_y_centered * math.cos(-theta)
+    
+    # Step 3: Scale the rotated coordinates to the real-world size
+    real_x = xCen + rotated_x * scale_x
+    real_y = yCen + rotated_y * scale_y
+    
+    return [real_x, real_y]
 
 
 def convertcontours(list, tag_pos):
