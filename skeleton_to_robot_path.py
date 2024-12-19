@@ -4,58 +4,64 @@ import math
 
 
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib.animation import FuncAnimation
 from typing import List, Tuple
-
-def animate_paths(paths: List[List[Tuple[int, int]]], save_as: str = None):
+def animate_points(points_list):
     """
-    Create an animation of paths being drawn.
+    Animates the drawing of segments between points in the list of lists.
     
-    :param paths: List of paths, where each path is a list of points [(x1, y1), (x2, y2), ...].
-    :param save_as: Optional filename to save the animation (e.g., 'animation.mp4').
+    Arguments:
+    points_list -- A list of lists, where each inner list contains tuples of (x, y) points
+                   to be connected by lines.
     """
-    # Set up the figure and axis
-    fig, ax = plt.subplots(figsize=(10, 10))  # 1000x1000 pixels
-    ax.set_xlim(0, 1000)  # Adjust according to the data range
-    ax.set_ylim(0, 1000)
+    # Set up the plot
+    fig, ax = plt.subplots()
+    
+    # Set axis limits
+    ax.set_xlim(0, 1100)  # Adjust limits as necessary
+    ax.set_ylim(0, 850)  # Adjust limits as necessary
+    
+    # Set equal aspect ratio to avoid distortion
     ax.set_aspect('equal')
     
-    # Lines for each path
-    lines = [ax.plot([], [], lw=2)[0] for _ in paths]
+    # Color map for different segments
+    total_lists = len(points_list)
+    colors = plt.cm.turbo(np.linspace(0, 1, total_lists))  # One color per list
     
-    # Create a list of cumulative points for each path
-    cumulative_points = [[] for _ in paths]
-
+    # Initialize the plot (empty)
     def init():
-        """Initialize the animation."""
-        for line in lines:
-            line.set_data([], [])
-        return lines
+        return []
 
+    # Function to update the plot at each frame
     def update(frame):
-        """Update the frame of the animation."""
-        for i, path in enumerate(paths):
-            if frame < len(path) - 1:  # Ensure we don't go out of bounds
-                # Append the current segment to the cumulative points for this path
-                cumulative_points[i].append(path[frame + 1])
-                # Update the line with cumulative points
-                x_data, y_data = zip(*cumulative_points[i])
-                lines[i].set_data(x_data, y_data)
-        return lines
+        # Calculate which list of points the current frame corresponds to
+        list_idx = frame  # Frame corresponds to the current list being drawn
+        total_segments = 0
+        lines_to_draw = []
 
-    # Total frames = longest path length minus 1 (since we're drawing line segments)
-    max_frames = max(len(path) - 1 for path in paths)
+        # Iterate over all the point lists and find the current list
+        for points in points_list:
+            num_segments = len(points) - 1
+            if list_idx == total_segments:
+                # Plot the entire list of points with the same color
+                x_vals = [point[1] for point in points]
+                y_vals = [850-point[0] for point in points]
+                
+                # Plot the segment with a different color
+                ax.plot(x_vals, y_vals, color=colors[list_idx], lw=2)
+                break
+            total_segments += 1  # Move to the next list
+
+        return lines_to_draw
+
+    # Calculate the total number of lists
+    total_lists = len(points_list)
 
     # Create the animation
-    anim = animation.FuncAnimation(
-        fig, update, frames=max_frames, init_func=init, blit=True, interval=5, repeat=False
-    )
-
-    # Save the animation if a filename is provided
-    if save_as:
-        anim.save(save_as, fps=30, extra_args=['-vcodec', 'libx264'])
-
+    ani = FuncAnimation(fig, update, frames=total_lists+5, init_func=init, blit=False, interval=500, repeat=True, repeat_delay=3000)
+    ani.save("animation.mp4", writer="ffmpeg", fps=2)
     plt.show()
+    
 
 def extract_paths_prioritize_dynamic_endpoints(image):
     """
@@ -155,7 +161,7 @@ def order_segments(
             # Distance without reversal
             dist_normal = calculate_distance(last_end, seg[0])
             # Distance with reversal
-            dist_reversed = calculate_distance(last_end, seg[1])
+            dist_reversed = calculate_distance(last_end, seg[-1])
 
             if dist_normal < best_distance:
                 best_distance = dist_normal
@@ -237,4 +243,4 @@ if __name__ == "__main__":
     pp = preprocess_paths(newpaths)
     print(pp)
     # Visualize the paths being drawn
-    animate_paths(pp)
+    animate_points(pp)
