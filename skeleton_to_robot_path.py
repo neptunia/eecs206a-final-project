@@ -26,7 +26,7 @@ def animate_points(points_list):
     
     # Color map for different segments
     total_lists = len(points_list)
-    colors = plt.cm.turbo(np.linspace(0, 1, total_lists))  # One color per list
+    colors = plt.cm.rainbow(np.linspace(0, 1, total_lists))  # One color per list
     
     # Initialize the plot (empty)
     def init():
@@ -213,7 +213,7 @@ if __name__ == "__main__":
         # merge paths if the end points are within 10 pixels of each other
 
         for i in range(len(paths)-2, 0, -1):
-            if calculate_distance(paths[i][-1], paths[i+1][0]) < 10:
+            if calculate_distance(paths[i][-1], paths[i+1][0]) < 15:
                 paths[i]+=paths[i+1]
                 paths.pop(i+1)
         #print(paths_reordered)
@@ -242,5 +242,8 @@ if __name__ == "__main__":
 
     pp = preprocess_paths(newpaths)
     print(pp)
+    import pickle
+    with open("/home/cc/ee106a/fa24/class/ee106a-ads/ros_workspaces/lab7/src/sawyer_full_stack/scripts/data.pickle", "wb") as f:
+        pickle.dump(pp, f)
     # Visualize the paths being drawn
     animate_points(pp)

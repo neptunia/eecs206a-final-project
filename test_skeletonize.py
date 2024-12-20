@@ -13,17 +13,26 @@ def process_image_to_single_pixel_lines(image_path, output_path):
     # Apply Gaussian blur to reduce noise
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
 
+    cv2.imshow("Morphologically Cleaned Maskasdf", blurred)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
     # Use adaptive thresholding for better line extraction
     thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV, 11, 2)
+                                   cv2.THRESH_BINARY_INV, 13, 2)
     
+
+
+
     # Ensure the image is binary
     binary = (thresh > 0).astype(np.uint8)
 
     kernel = np.ones((5,5),np.uint8)
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
-  
+    cv2.imshow("Morphologically Cleaned Mask", binary*255)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     '''
     # Connected component analysis to identify distinct line segments
@@ -213,7 +222,7 @@ def remove_short_branches(image, threshold=10):
 # Example usage
 x = process_image_to_single_pixel_lines('transformed_image.png', 'test123.png')
 
-y = remove_small_line_noise(x, 25)
+y = remove_small_line_noise(x, 23)
 
 skeleton_pruned = remove_short_branches(y)
 cv2.imwrite('result.png', skeleton_pruned)

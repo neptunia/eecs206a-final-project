@@ -10,7 +10,7 @@ hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
 # Define the color range for the paper (adjust based on your image)
 # Replace these values with appropriate HSV ranges for the paper's color
-lower_color = np.array([0, 0, 120])  # Example: white paper
+lower_color = np.array([0, 0, 110])  # Example: white paper
 upper_color = np.array([180, 60, 255])
 
 # Create a mask for the color range
